@@ -22,6 +22,11 @@ module HstoreTranslate
           quoted_translation_store = connection.quote_column_name("#{attr_name}_translations")
           where("#{quoted_translation_store} @> hstore(:locale, :value)", locale: locale, value: value)
         end
+
+        define_singleton_method "like_#{attr_name}_translation" do |value, locale = I18n.locale|
+          quoted_translation_store = connection.quote_column_name("#{attr_name}_translations")
+          where("lower(#{quoted_translation_store}->':locale') LIKE ':value')", locale: locale, value: "%#{value}%")
+        end
       end
 
       alias_method_chain :respond_to?, :translates
