@@ -19,12 +19,12 @@ module HstoreTranslate
         end
 
         define_singleton_method "with_#{attr_name}_translation" do |value, locale = I18n.locale|
-          quoted_translation_store = connection.quote_column_name("#{attr_name}_translations")
+          quoted_translation_store = connection.quote_table_name(table_name) + "." + connection.quote_column_name("#{attr_name}_translations")
           where("#{quoted_translation_store} @> hstore(:locale, :value)", locale: locale, value: value)
         end
 
         define_singleton_method "without_#{attr_name}_translation" do |value, locale = I18n.locale|
-          quoted_translation_store = connection.quote_column_name("#{attr_name}_translations")
+          quoted_translation_store = connection.quote_table_name(table_name) + "." + connection.quote_column_name("#{attr_name}_translations")
           where("#{quoted_translation_store} <> hstore(:locale, :value)", locale: locale, value: value)
         end
 
