@@ -18,9 +18,18 @@ module HstoreTranslate
           write_hstore_translation(attr_name, value)
         end
 
-        define_singleton_method "with_#{attr_name}_translation" do |value, locale = I18n.locale|
+        define_singleton_method "with_#{attr_name}_translation" do |value, locales = [I18n.locale]|
           quoted_translation_store = connection.quote_table_name(table_name) + "." + connection.quote_column_name("#{attr_name}_translations")
-          where("#{quoted_translation_store} @> hstore(:locale, :value)", locale: locale, value: value)
+          sql_sentence = ''
+          locales.each do |locale|
+            sql_for_locale = "(#{quoted_translation_store} @> hstore('#{locale}', :value))"
+            if locale == locales.last
+              sql_sentence += sql_for_locale
+            else
+              sql_sentence += "#{sql_for_locale} OR "
+            end
+          end
+          where(sql_sentence, value: value)
         end
 
         define_singleton_method "without_#{attr_name}_translation" do |value, locale = I18n.locale|
