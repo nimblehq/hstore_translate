@@ -18,19 +18,34 @@ module HstoreTranslate
           write_hstore_translation(attr_name, value)
         end
 
-        define_singleton_method "with_#{attr_name}_translation" do |value, locale = I18n.locale|
-          quoted_translation_store = connection.quote_table_name(table_name) + "." + connection.quote_column_name("#{attr_name}_translations")
-          where("#{quoted_translation_store} @> hstore(:locale, :value)", locale: locale, value: value)
+        define_singleton_method "with_#{attr_name}_translation" do |value, locales = [I18n.locale]|
+          quoted_translation_store = connection.quote_table_name(table_name) + '.' + connection.quote_column_name("#{attr_name}_translations")
+          sql_sentence = ''
+          locales.each do |locale|
+            sql_for_locale = "(#{quoted_translation_store} @> hstore('#{locale}', :value))"
+            sql_sentence += locale == locales.last ? sql_for_locale : "#{sql_for_locale} OR "
+          end
+          where(sql_sentence, value: value)
         end
 
-        define_singleton_method "without_#{attr_name}_translation" do |value, locale = I18n.locale|
-          quoted_translation_store = connection.quote_table_name(table_name) + "." + connection.quote_column_name("#{attr_name}_translations")
-          where("#{quoted_translation_store} <> hstore(:locale, :value)", locale: locale, value: value)
+        define_singleton_method "without_#{attr_name}_translation" do |value, locales = [I18n.locale]|
+          quoted_translation_store = connection.quote_table_name(table_name) + '.' + connection.quote_column_name("#{attr_name}_translations")
+          sql_sentence = ''
+          locales.each do |locale|
+            sql_for_locale = "(#{quoted_translation_store} <> hstore('#{locale}', :value))"
+            sql_sentence += locale == locales.last ? sql_for_locale : "#{sql_for_locale} OR "
+          end
+          where(sql_sentence, value: value)
         end
 
-        define_singleton_method "like_#{attr_name}_translation" do |value, locale = I18n.locale|
-          quoted_translation_store = connection.quote_column_name("#{attr_name}_translations")
-          where("lower(#{quoted_translation_store}->:locale) LIKE :value", locale: locale, value: "%#{value}%")
+        define_singleton_method "like_#{attr_name}_translation" do |value, locales = [I18n.locale]|
+          quoted_translation_store = connection.quote_table_name(table_name) + '.' + connection.quote_column_name("#{attr_name}_translations")
+          sql_sentence = ''
+          locales.each do |locale|
+            sql_for_locale = "lower(#{quoted_translation_store}->'#{locale}') LIKE :value"
+            sql_sentence += locale == locales.last ? sql_for_locale : "#{sql_for_locale} OR "
+          end
+          where(sql_sentence, value: "%#{value}%")
         end
       end
     end
